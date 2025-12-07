@@ -74,6 +74,24 @@ curl "http://localhost:3000/highest-discount?amountToPay=5000&bankName=HDFC&paym
 
 ---
 
+## Validation & Testing
+
+We have provided scripts to validate the data ingestion and verify the discount calculations.
+
+### 1. Ingest Sample Data
+This script ingests all files from the `sampleData` directory (`flipkart.json`, `flipkart_2.json`) into the running server.
+```bash
+npx ts-node src/validate_sample_data.ts
+```
+
+### 2. Verify Calculations
+This script runs a set of test cases against the `/highest-discount` endpoint to verify that the best offers are being selected correctly.
+```bash
+npx ts-node src/verify_calculations.ts
+```
+
+---
+
 ## Assumptions
 -   **Regex Parsing**: The logic relies on regex patterns to parse offer descriptions ("10% off", "Flat ₹100").
 -   **Case Insensitivity**: The API implements robust case-insensitive matching for Bank names and normalized matching for Payment Instruments.
