@@ -108,13 +108,13 @@ export const ingestFlipkartOffer = async (item: FlipkartOfferItem) => {
         },
     });
 };
-
 export const findBestDiscount = async (
     amountToPay: number,
     bankName: string,
     paymentInstrument: string
 ) => {
-    // 1. Find offers matching Bank and Payment Instrument
+    if (amountToPay <= 0) return 0;
+
     // 1. Find offers with flexible matching
     // Note: We use 'contains' for Bank to handle cases like "AXIS" matching "FLIPKARTAXISBANK"
     // We normalize paymentInstrument to uppercase to match standard enums like "CREDIT_CARD"
