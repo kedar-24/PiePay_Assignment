@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Offer {
+  id             Int             @id @default(autoincrement())
+  offerId        String          @unique
+  description    String
+  validUntil     DateTime?
+  terms          Terms?
+  banks          Bank[]
+  paymentMethods PaymentMethod[]
+}
+
+model Terms {
+  id                 Int   @id @default(autoincrement())
+  offerId            Int   @unique
+  offer              Offer @relation(fields: [offerId], references: [id])
+  minPurchaseAmount  Float
+  discountPercentage Float
+  maxDiscountAmount  Float
+}
+
+model Bank {
+  id      Int    @id @default(autoincrement())
+  name    String
+  offerId Int
+  offer   Offer  @relation(fields: [offerId], references: [id])
+}
+
+model PaymentMethod {
+  id      Int    @id @default(autoincrement())
+  name    String // e.g., "CREDIT_CARD", "EMI"
+  offerId Int
+  offer   Offer  @relation(fields: [offerId], references: [id])
+}
