@@ -4,43 +4,92 @@
 This is a backend service developed for the PiePay assignment. It simulates the ingestion of offers from Flipkart and calculates the maximum applicable discount for a user transaction.
 
 ## Setup Instructions
-1.  **Prerequisites**: Ensure Node.js (v18+) is installed.
-2.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
-3.  **Database Migration**:
-    Initialize the SQLite database using Prisma.
-    ```bash
-    npx prisma migrate dev --name init
-    ```
-4.  **Start Server**:
-    Run the development server.
-    ```bash
-    npm run dev
-    ```
-    The server listens on `http://localhost:3000`.
+
+### 1. Prerequisites
+-   Node.js (v18 or higher)
+-   npm (Node Package Manager)
+
+### 2. Environment Configuration
+Create a `.env` file in the root directory. This project uses SQLite, so the setup is minimal.
+
+**File:** `.env`
+```env
+DATABASE_URL="file:./dev.db"
+```
+
+### 3. Installation
+Install the project dependencies.
+```bash
+npm install
+```
+
+### 4. Database Setup
+Initialize the database and apply migrations.
+```bash
+npx prisma migrate dev --name init
+```
+
+### 5. Running the Server
+Start the development server.
+```bash
+npm run dev
+```
+The server will be available at `http://localhost:3000`.
+
+---
+
+## Database Access
+
+The project uses **SQLite**. The easiest way to view and edit the database contents is using **Prisma Studio**, a built-in GUI key.
+
+Run the following command:
+```bash
+npx prisma studio
+```
+This will open a web interface at `http://localhost:5555` where you can inspect the `Offer`, `Bank`, and `Terms` tables.
+
+---
+
+## API Usage Guide
+
+### 1. Ingest Offers (POST)
+Populates the database with offers from a Flipkart-like JSON structure.
+-   **URL**: `http://localhost:3000/offer`
+-   **Method**: `POST`
+-   **Body**: JSON (See `flipkart.json` for structure)
+
+### 2. Get Highest Discount (GET)
+Calculates the best discount for a transaction.
+-   **URL**: `http://localhost:3000/highest-discount`
+-   **Method**: `GET`
+-   **Query Parameters**:
+    -   `amountToPay`: (number) Total transaction amount.
+    -   `bankName`: (string) e.g., "HDFC", "AXIS".
+    -   `paymentInstrument`: (string) e.g., "CREDIT_CARD", "EMI".
+
+**Example Request (cURL):**
+```bash
+curl "http://localhost:3000/highest-discount?amountToPay=5000&bankName=HDFC&paymentInstrument=CREDIT_CARD"
+```
+
+---
 
 ## Assumptions
--   **Limited Regex Handling**: The offer description parsing logic uses Regular Expressions to extract discount values (Percentage/Flat) and constraints (Min Purchase, Max Discount). It assumes Flipkart's offer text follows simpler patterns like "10% off", "Flat ₹100 off", etc. Complex or non-standard descriptions might not be parsed correctly.
--   **Single Bank/Instrument per Offer**: The current ingestion logic mainly targeted extracting the *first* detected bank or payment instrument if multiple are mentioned, though the data model supports many-to-many.
--   **Case Insensitivity**: Bank names and payment instruments are treated with simple string matching (often case-sensitive in DB, though logic tries to be robust).
+-   **Regex Parsing**: The logic relies on regex patterns to parse offer descriptions ("10% off", "Flat ₹100").
+-   **Case Insensitivity**: The API implements robust case-insensitive matching for Bank names and normalized matching for Payment Instruments.
+-   **Partial Matches**: The system supports partial matching (e.g., "AXIS" maps to "FLIPKARTAXISBANK").
 
 ## Design Choices
--   **Framework (Express.js)**: Chosen for its minimalist approach and high speed of development for REST APIs.
--   **Database (SQLite)**: Selected for the ease of setup (file-based) for this specific take-home assignment, avoiding the need for the evaluator to install comprehensive DB servers like Postgres/MySQL.
--   **ORM (Prisma)**: Used for type-safe database interactions and easy schema management.
--   **Separation of Concerns**: Code is structured into `routes` (API definition), `controllers` (request/response handling), and `services` (business logic), ensuring maintainability.
+-   **Express.js**: Lightweight framework for rapid API development.
+-   **Prisma & SQLite**: Zero-config, file-based database setup ideal for portability and assignment evaluation.
+-   **Separation of Concerns**: Modular architecture with separate Routes, Controllers, and Services.
 
-## Scaling to 1,000 RPS (GET /highest-discount)
-To handle high concurrency:
-1.  **In-Memory Caching (Redis)**: The set of offers for a specific `bankName` and `paymentInstrument` changes infrequently. We can cache the list of candidate offers in Redis. The calculation (Math.max) is CPU-cheap and can be done on the fly, or the result for specific `amountToPay` ranges could also be cached.
-2.  **Database Indexing**: Ensure there are indexes on `Bank.name` and `PaymentMethod.name` to speed up the initial filtering of offers.
-3.  **Horizontal Scaling**: Run multiple instances of the Node.js server behind a load balancer (e.g., NGINX or AWS ALB).
-4.  **Connection Pooling**: Verify Prisma connection pool settings to handle concurrent DB queries without bottlenecking.
+## Scaling Strategy (1,000 RPS)
+1.  **Caching**: Use Redis to cache the list of applicable offers for (Bank, Instrument) pairs, as offer data changes infrequently relative to read traffic.
+2.  **Read Replicas**: If migrating to PostgreSQL, use read replicas to offload query traffic.
+3.  **Horizontal Scaling**: Deploy multiple stateless Node.js containers behind a load balancer.
 
 ## Future Improvements
--   **Better NLP/LLM Parsing**: Instead of Regex, integrating a small LLM or NLP library would significantly improve the accuracy of extracting offer terms from unstructured text descriptions.
--   **Validation Middleware**: Add strict request validation using libraries like `zod` or `joi` to handle edge case inputs gracefully.
--   **Unit Tests**: Add a comprehensive test suite (Jest/Mocha) with mocked database calls to ensure logic stability during refactors.
--   **Swagger Documentation**: Auto-generate API documentation for better developer experience.
+-   **NLP Parsing**: Replace Regex with NLP models for more accurate offer extraction.
+-   **Validation**: Add schema validation (Zod/Joi) for API inputs.
+-   **Testing**: Expand the test suite to include unit tests with mocked DB providers.
