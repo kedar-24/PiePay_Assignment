@@ -29,7 +29,13 @@ Initialize the database and apply migrations.
 npx prisma migrate dev --name init
 ```
 
-### 5. Running the Server
+### 5. Seed Sample Data
+Populate the database with the provided sample offers from Flipkart.
+```bash
+npx ts-node src/validate_sample_data.ts
+```
+
+### 6. Running the Server
 Start the development server.
 ```bash
 npm run dev
