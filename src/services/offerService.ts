@@ -27,7 +27,7 @@ const parseOfferText = (text: string): Partial<ProcessedOffer> => {
     }
 
     // 2. Extract Max Discount (Up to)
-    const uptoMatch = text.match(/up\s+to\s+₹([\d,]+)/i);
+    const uptoMatch = text.match(/(?:up\s*to|upto)\s*₹\s*([\d,]+)/i);
     if (uptoMatch) {
         result.maxDiscountAmount = parseFloat(uptoMatch[1].replace(/,/g, ''));
     }
@@ -115,16 +115,23 @@ export const findBestDiscount = async (
     paymentInstrument: string
 ) => {
     // 1. Find offers matching Bank and Payment Instrument
+    // 1. Find offers with flexible matching
+    // Note: We use 'contains' for Bank to handle cases like "AXIS" matching "FLIPKARTAXISBANK"
+    // We normalize paymentInstrument to uppercase to match standard enums like "CREDIT_CARD"
     const offers = await prisma.offer.findMany({
         where: {
             banks: {
                 some: {
-                    name: bankName,
+                    name: {
+                        contains: bankName
+                    }
                 },
             },
             paymentMethods: {
                 some: {
-                    name: paymentInstrument,
+                    name: {
+                        contains: paymentInstrument.toUpperCase()
+                    }
                 },
             },
         },
